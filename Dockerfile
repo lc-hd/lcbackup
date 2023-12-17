@@ -10,7 +10,16 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 RUN apt -y update
 RUN apt -y install postgresql-client-15
 
+# copy files
 COPY ./main.py /home/
+COPY ./env-local.sh /home/
+COPY ./run.sh /home/
+
+# pick working directory
 WORKDIR /home/
 
-ENTRYPOINT ["python", "main.py" ]
+# make scripts executable
+RUN chmod +x run.sh
+RUN chmod +x env-local.sh
+
+ENTRYPOINT ["./run.sh" ]

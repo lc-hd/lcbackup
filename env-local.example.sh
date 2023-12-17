@@ -1,6 +1,5 @@
-# Enter these values
-# Note this is only used when running locally
-
+# This is an example of the environment variables of interest
+# Dockerfile will source env-local.sh
 export DB_NAME=
 export DB_USER=
 export DB_PASS=
