@@ -13,10 +13,20 @@ RUN apt -y install postgresql-client-15
 # -------------------install pg dump dependencies
 
 # copy files
-COPY ./app /home/
+COPY ./main.py /home/
+COPY ./requirements.txt /home/
+COPY ./run.sh /home/
+
+# env-local.sh is a placeholder file that is replaced
+# when running image in cloud
+RUN mkdir /home/envs/
+RUN touch /home/envs/env-local.sh
+
+# make directory for dumped db files
+RUN mkdir /home/dumped_files
 
 # pick working directory
-WORKDIR /home/
+WORKDIR /home
 
 # make scripts executable
 RUN chmod +x run.sh

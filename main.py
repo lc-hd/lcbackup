@@ -116,7 +116,7 @@ class DB_CONNECTOR:
         cmd = f'pg_dump {dbname} > {output_file_path}'
 
         result = subprocess.run(
-            cmd, capture_output=True, shell=True
+            cmd, capture_output=True, shell=True, timeout=30,
         )
 
         # forward error when cmd fails
@@ -154,11 +154,16 @@ class Command(BaseCommand):
         else:
             raise Exception('Invalid Interval Name')
 
+    @staticmethod
+    def remove_dumped_file(dumped_file_path):
+        if os.path.exists(dumped_file_path):
+            os.remove(dumped_file_path)
+
     def create_backup(self, s3_file_path: str) -> bool:
         # returns True when backup was created and False otherwise
-        try:
-            dumped_db_file_path = os.path.join(CURRENT_FOLDER, 'dumped_files', 'dumped.psql')
+        dumped_db_file_path = os.path.join(CURRENT_FOLDER, 'dumped_files', 'dumped.psql')
 
+        try:
             # create db dump only when file doesn't exist
             if not os.path.isfile(dumped_db_file_path):
                 self.db.dump(dumped_db_file_path)
@@ -166,6 +171,9 @@ class Command(BaseCommand):
             self.storage.write_file(dumped_db_file_path, s3_file_path)
             return True
         except Exception as e:
+            # remove the dumped file since an error happened,
+            # the file is likely empty
+            self.remove_dumped_file(dumped_db_file_path)
             self.print_error(f'Error Creating File {s3_file_path}: {e}')
             return False
 
