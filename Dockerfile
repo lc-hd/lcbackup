@@ -12,7 +12,7 @@ RUN apt -y install postgresql-client-15
 
 # copy files
 COPY ./main.py /home/
-COPY ./env-local.sh /home/
+COPY ./env-local.sh /home/envs/
 COPY ./run.sh /home/
 
 # pick working directory
@@ -20,6 +20,6 @@ WORKDIR /home/
 
 # make scripts executable
 RUN chmod +x run.sh
-RUN chmod +x env-local.sh
+RUN chmod +x envs/env-local.sh
 
 ENTRYPOINT ["./run.sh" ]
