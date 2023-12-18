@@ -1,6 +1,8 @@
-import os.path
+import os
+import subprocess
 import sys
 import time
+from urllib.parse import quote
 from typing import List
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -17,6 +19,13 @@ INTERVALS = [
     Interval('month', 12),
     Interval('year', 4),
 ]
+
+DB_HOST = os.environ.get('DB_HOST')
+DB_NAME = os.environ.get('DB_NAME')
+DB_PORT = os.environ.get('DB_PORT')
+DB_USER = os.environ.get('DB_USER')
+DB_PASS = os.environ.get('DB_PASS')
+
 DEBUG = os.environ.get('DEBUG_VALUE')
 BOTO_SESSION = boto3.session.Session()
 ACCESS_KEY = os.environ.get('DBBACKUP_ACCESS_KEY')
@@ -74,9 +83,52 @@ class BaseCommand:
         print(message, file=sys.stdout)
 
 
+class DB_CONNECTOR:
+    def __init__(self, host, name, port, user, password):
+        self.settings = {
+            'HOST': host,
+            'NAME': name,
+            'PORT': port,
+            'USER': user,
+            'PASSWORD': password,
+        }
+
+    def create_postgres_uri(self):
+        host = self.settings.get('HOST')
+        if not host:
+            raise Exception('A host name is required')
+
+        dbname = self.settings.get('NAME') or ''
+        user = quote(self.settings.get('USER') or '')
+        password = self.settings.get('PASSWORD') or ''
+        password = f':{quote(password)}' if password else ''
+        if not user:
+            password = ''
+        else:
+            host = '@' + host
+
+        port = ':{}'.format(self.settings.get('PORT')) if self.settings.get('PORT') else ''
+        dbname = f'--dbname=postgresql://{user}{password}{host}{port}/{dbname}'
+        return dbname
+
+    def dump(self, output_file_path):
+        dbname = self.create_postgres_uri()
+        cmd = f'pg_dump {dbname} > {output_file_path}'
+
+        result = subprocess.run(
+            cmd, capture_output=True, shell=True
+        )
+
+        # forward error when cmd fails
+        if result.stderr:
+            error_message = f'Error Dumping File: {result.stderr}'
+            raise Exception(error_message)
+
+
 class Command(BaseCommand):
-    help = "Runs backup code"
+    help = 'Runs backup code'
     storage = Storage()
+    db = DB_CONNECTOR(DB_HOST, DB_NAME, DB_PORT, DB_USER, DB_PASS)
     env = 'dev' if DEBUG else 'prod'
 
     @staticmethod
@@ -105,12 +157,16 @@ class Command(BaseCommand):
     def create_backup(self, s3_file_path: str) -> bool:
         # returns True when backup was created and False otherwise
         try:
-            # create backup here using pg_dump
-            dumped_db_file = os.path.join(CURRENT_FOLDER, 'dumped_files', 'placeholder.txt')
-            self.storage.write_file(dumped_db_file, s3_file_path)
+            dumped_db_file_path = os.path.join(CURRENT_FOLDER, 'dumped_files', 'dumped.psql')
+
+            # create db dump only when file doesn't exist
+            if not os.path.isfile(dumped_db_file_path):
+                self.db.dump(dumped_db_file_path)
+
+            self.storage.write_file(dumped_db_file_path, s3_file_path)
             return True
-        except (Exception,):
-            self.print_error(f'Error Creating File {s3_file_path}')
+        except Exception as e:
+            self.print_error(f'Error Creating File {s3_file_path}: {e}')
             return False
 
     def should_save_new_file(self, interval: Interval, files: List[str]) -> bool:
@@ -171,6 +227,6 @@ class Command(BaseCommand):
         self.job()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     c = Command()
     c.run()
