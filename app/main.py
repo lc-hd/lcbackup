@@ -19,6 +19,7 @@ INTERVALS = [
     Interval('month', 12),
     Interval('year', 4),
 ]
+CURRENT_FOLDER = Path(__file__).parent.absolute()
 
 DB_HOST = os.environ.get('DB_HOST')
 DB_NAME = os.environ.get('DB_NAME')
@@ -33,36 +34,35 @@ SECRET_KEY = os.environ.get('DBBACKUP_SECRET_KEY')
 BUCKET_NAME = os.environ.get('DBBACKUP_BUCKET_NAME')
 ENDPOINT_URL = os.environ.get('DBBACKUP_ENDPOINT_URL')
 
-CURRENT_FOLDER = Path(__file__).parent.absolute()
-
 
 class Storage:
-    def __init__(self):
+    def __init__(self, access_key, secret_key, bucket_name, endpoint_url):
 
-        if not (ACCESS_KEY and SECRET_KEY and BUCKET_NAME and ENDPOINT_URL):
+        if not (access_key and secret_key and bucket_name and endpoint_url):
             # raise error if any s3-related env is None
             raise Exception('S3 Bucket Is Not Configured')
 
         self.client = BOTO_SESSION.client(
             's3',
             region_name='nyc3',
-            endpoint_url=ENDPOINT_URL,
-            aws_access_key_id=ACCESS_KEY,
-            aws_secret_access_key=SECRET_KEY
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key
         )
+        self.bucket_name = bucket_name
 
-    def write_file(self, absolute_file_path: str, s3_bucket_file_path):
-        self.client.upload_file(absolute_file_path, BUCKET_NAME, s3_bucket_file_path)
+    def write_file(self, absolute_file_path: str, file_path_in_s3_bucket):
+        self.client.upload_file(absolute_file_path, self.bucket_name, file_path_in_s3_bucket)
 
-    def delete_file(self, s3_bucket_file_path: str):
+    def delete_file(self, file_path_in_s3_bucket: str):
         self.client.delete_object(
-            Bucket=BUCKET_NAME,
-            Key=s3_bucket_file_path,
+            Bucket=self.bucket_name,
+            Key=file_path_in_s3_bucket,
         )
 
     def list_directory(self, directory_path: str) -> list:
         response = self.client.list_objects_v2(
-            Bucket=BUCKET_NAME,
+            Bucket=self.bucket_name,
             Prefix=directory_path
         )
 
@@ -127,7 +127,7 @@ class DB_CONNECTOR:
 
 class Command(BaseCommand):
     help = 'Runs backup code'
-    storage = Storage()
+    storage = Storage(ACCESS_KEY, SECRET_KEY, BUCKET_NAME, ENDPOINT_URL)
     db = DB_CONNECTOR(DB_HOST, DB_NAME, DB_PORT, DB_USER, DB_PASS)
     env = 'dev' if DEBUG else 'prod'
 

@@ -1,6 +1,7 @@
 FROM python:3.8-slim-buster
 
 
+# -------------------install pg dump dependencies
 RUN apt update
 RUN apt -y install wget gnupg2 lsb-release
 
@@ -9,6 +10,7 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 
 RUN apt -y update
 RUN apt -y install postgresql-client-15
+# -------------------install pg dump dependencies
 
 # copy files
 COPY ./app /home/
