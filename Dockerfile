@@ -13,10 +13,6 @@ RUN apt -y install postgresql-client-15
 # copy files
 COPY ./app /home/
 
-#COPY ./main.py /home/
-#COPY ./env-local.sh /home/envs/
-#COPY ./run.sh /home/
-
 # pick working directory
 WORKDIR /home/
 
