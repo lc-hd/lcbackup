@@ -24,6 +24,8 @@ SECRET_KEY = os.environ.get('DBBACKUP_SECRET_KEY')
 BUCKET_NAME = os.environ.get('DBBACKUP_BUCKET_NAME')
 ENDPOINT_URL = os.environ.get('DBBACKUP_ENDPOINT_URL')
 
+CURRENT_FOLDER = Path(__file__).parent.absolute()
+
 
 class Storage:
     def __init__(self):
@@ -39,17 +41,27 @@ class Storage:
             aws_access_key_id=ACCESS_KEY,
             aws_secret_access_key=SECRET_KEY
         )
-        a=1
 
+    def write_file(self, absolute_file_path: str, s3_bucket_file_path):
+        self.client.upload_file(absolute_file_path, BUCKET_NAME, s3_bucket_file_path)
 
-    def write_file(self, file_path: str):
-        pass
+    def delete_file(self, s3_bucket_file_path: str):
+        self.client.delete_object(
+            Bucket=BUCKET_NAME,
+            Key=s3_bucket_file_path,
+        )
 
-    def delete_file(self, oldest_file_path: str):
-        pass
+    def list_directory(self, directory_path: str) -> list:
+        response = self.client.list_objects_v2(
+            Bucket=BUCKET_NAME,
+            Prefix=directory_path
+        )
 
-    def list_directory(self, path: str) -> list:
-        return []
+        if response['KeyCount'] == 0:
+            return []
+
+        # return file names
+        return [f['Key'] for f in response['Contents']]
 
 
 class BaseCommand:
@@ -90,15 +102,15 @@ class Command(BaseCommand):
         else:
             raise Exception('Invalid Interval Name')
 
-    def create_backup(self, file_path: str) -> bool:
+    def create_backup(self, s3_file_path: str) -> bool:
         # returns True when backup was created and False otherwise
         try:
-            # create backup here
-            # management.call_command(dbbackup.Command(), verbosity=0, output_filename=file_path)
-            self.storage.write_file(file_path)
+            # create backup here using pg_dump
+            dumped_db_file = os.path.join(CURRENT_FOLDER, 'dumped_files', 'placeholder.txt')
+            self.storage.write_file(dumped_db_file, s3_file_path)
             return True
         except (Exception,):
-            self.print_error(f'Error Creating File {file_path}')
+            self.print_error(f'Error Creating File {s3_file_path}')
             return False
 
     def should_save_new_file(self, interval: Interval, files: List[str]) -> bool:
@@ -136,7 +148,7 @@ class Command(BaseCommand):
         for interval in INTERVALS:
             try:
                 path = os.path.join(self.env, interval.name)
-                files: list = self.storage.list_directory(path=path)
+                files: list = self.storage.list_directory(directory_path=path)
                 files.sort()
             except (Exception,):
                 self.print_error('Error Getting Files')
