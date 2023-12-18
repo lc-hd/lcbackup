@@ -6,6 +6,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from collections import namedtuple
 
+import boto3
+
 
 TIME_FORMAT = '%Y:%m:%d:%H:%M:%S'
 Interval = namedtuple('Interval', ['name', 'max_backups'])
@@ -16,9 +18,30 @@ INTERVALS = [
     Interval('year', 4),
 ]
 DEBUG = os.environ.get('DEBUG_VALUE')
+BOTO_SESSION = boto3.session.Session()
+ACCESS_KEY = os.environ.get('DBBACKUP_ACCESS_KEY')
+SECRET_KEY = os.environ.get('DBBACKUP_SECRET_KEY')
+BUCKET_NAME = os.environ.get('DBBACKUP_BUCKET_NAME')
+ENDPOINT_URL = os.environ.get('DBBACKUP_ENDPOINT_URL')
 
 
 class Storage:
+    def __init__(self):
+
+        if not (ACCESS_KEY and SECRET_KEY and BUCKET_NAME and ENDPOINT_URL):
+            # raise error if any s3-related env is None
+            raise Exception('S3 Bucket Is Not Configured')
+
+        self.client = BOTO_SESSION.client(
+            's3',
+            region_name='nyc3',
+            endpoint_url=ENDPOINT_URL,
+            aws_access_key_id=ACCESS_KEY,
+            aws_secret_access_key=SECRET_KEY
+        )
+        a=1
+
+
     def write_file(self, file_path: str):
         pass
 

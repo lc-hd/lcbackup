@@ -11,9 +11,11 @@ RUN apt -y update
 RUN apt -y install postgresql-client-15
 
 # copy files
-COPY ./main.py /home/
-COPY ./env-local.sh /home/envs/
-COPY ./run.sh /home/
+COPY ./app /home/
+
+#COPY ./main.py /home/
+#COPY ./env-local.sh /home/envs/
+#COPY ./run.sh /home/
 
 # pick working directory
 WORKDIR /home/
@@ -21,5 +23,6 @@ WORKDIR /home/
 # make scripts executable
 RUN chmod +x run.sh
 RUN chmod +x envs/env-local.sh
+RUN pip install -r requirements.txt
 
 ENTRYPOINT ["./run.sh" ]
