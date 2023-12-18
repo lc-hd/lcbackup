@@ -2,7 +2,7 @@
 # Dockerfile will source env-local.sh
 
 # ----for dev of prod environments
-DEBUG_VALUE=
+export DEBUG_VALUE=
 
 # --------------for connecting to db
 export DB_NAME=
