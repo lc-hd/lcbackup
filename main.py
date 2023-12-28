@@ -94,7 +94,7 @@ class DB_CONNECTOR:
         }
 
     def dump(self, output_file_path):
-        cmd = f'runuser -u {DB_USER} -- pg_dump -U {DB_USER} -h {DB_HOST} {DB_NAME} > {output_file_path}'
+        cmd = f'PGPASSWORD="{DB_PASS}" runuser -u {DB_USER} -- pg_dump -U {DB_USER} -h {DB_HOST} {DB_NAME} > {output_file_path}'
 
         result = subprocess.run(
             cmd, capture_output=True, shell=True, timeout=60,
