@@ -2,7 +2,7 @@ import os
 import subprocess
 import sys
 import time
-from urllib.parse import quote
+
 from typing import List
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -93,30 +93,11 @@ class DB_CONNECTOR:
             'PASSWORD': password,
         }
 
-    def create_postgres_uri(self):
-        host = self.settings.get('HOST')
-        if not host:
-            raise Exception('A host name is required')
-
-        dbname = self.settings.get('NAME') or ''
-        user = quote(self.settings.get('USER') or '')
-        password = self.settings.get('PASSWORD') or ''
-        password = f':{quote(password)}' if password else ''
-        if not user:
-            password = ''
-        else:
-            host = '@' + host
-
-        port = ':{}'.format(self.settings.get('PORT')) if self.settings.get('PORT') else ''
-        dbname = f'--dbname=postgresql://{user}{password}{host}{port}/{dbname}'
-        return dbname
-
     def dump(self, output_file_path):
-        dbname = self.create_postgres_uri()
-        cmd = f'pg_dump {dbname} > {output_file_path}'
+        cmd = f'runuser -u {DB_USER} -- pg_dump -U {DB_USER} -h {DB_HOST} {DB_NAME} > {output_file_path}'
 
         result = subprocess.run(
-            cmd, capture_output=True, shell=True, timeout=30,
+            cmd, capture_output=True, shell=True, timeout=60,
         )
 
         # forward error when cmd fails

@@ -10,6 +10,8 @@ RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-k
 
 RUN apt -y update
 RUN apt -y install postgresql-client-15
+
+RUN apt-get -y install postgresql-15
 # -------------------install pg dump dependencies
 
 # copy files
@@ -19,8 +21,8 @@ COPY ./run.sh /home/
 
 # env-local.sh is a placeholder file that is replaced
 # when running image in cloud
-RUN mkdir /home/envs/
-RUN touch /home/envs/env-local.sh
+RUN mkdir /envs/
+RUN touch /envs/env-local.sh
 
 # make directory for dumped db files
 RUN mkdir /home/dumped_files
@@ -30,7 +32,6 @@ WORKDIR /home
 
 # make scripts executable
 RUN chmod +x run.sh
-RUN chmod +x envs/env-local.sh
 RUN pip install -r requirements.txt
 
 ENTRYPOINT ["./run.sh" ]
