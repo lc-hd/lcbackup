@@ -110,7 +110,7 @@ class Command(BaseCommand):
     help = 'Runs backup code'
     storage = Storage(ACCESS_KEY, SECRET_KEY, BUCKET_NAME, ENDPOINT_URL)
     db = DB_CONNECTOR(DB_HOST, DB_NAME, DB_PORT, DB_USER, DB_PASS)
-    env = 'dev' if DEBUG else 'prod'
+    env = 'prod' if DEBUG == 'False' else 'dev'
 
     @staticmethod
     def truncate_datetime(dt: datetime, interval_name: str) -> datetime:
